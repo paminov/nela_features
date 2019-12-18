@@ -10,7 +10,7 @@ from sklearn.naive_bayes import MultinomialNB
 from sklearn.model_selection import Train_test_split
 from .constants import *
 from .utils import *
-
+import numpy as np
 
 class SocialCredibilityFeature(object):
     #nela_score_values_reduced_ds_with_frq_cnt.csv: https://drive.google.com/open?id=1_LyNVDK0bJKEQKkYlUIpLay4bHAt5UmM
