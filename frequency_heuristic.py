@@ -70,7 +70,7 @@ class FrequencyHeuristicFeature(object):
         x_text = self.tfidf.transform(df['name'])
         x_val = df.drop(['aggregated','name'], axis=1).values
         x = sparse.hstack([x_val, x_text]).tocsr()
-        y = self.train['aggregated'].values
+        y = df['aggregated'].values
         return x, y
 
     def __train_multinomial_bayes(self):
