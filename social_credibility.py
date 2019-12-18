@@ -42,13 +42,16 @@ class SocialCredibilityFeature(object):
         self.data = self.data.round({"aggregated": 0})
         self.tfidf = TfidfVectorizer(min_df=3, max_features=None, strip_accents='unicode',
                                      analyzer='word', token_pattern=r'\w{1,}', ngram_range=(1,5),
-                                     use_idf=1, smooth_idf=1, sublinear_tf=1)
+                                     use_idf=1, smooth_idf=1, sublinear_tf=1, lowercase=False)
+        self.tfidf1= TfidfVectorizer(min_df=3, max_features=None, strip_accents='unicode',
+                                     analyzer='word', token_pattern=r'\w{1,}', ngram_range=(1,5),
+                                     use_idf=1, smooth_idf=1, sublinear_tf=1, lowercase=False)
         self.X_train, self.X_test, self.y_train, self.y_test = train_test_split(self.data[['source', 'name', 'ratio']], self.data['aggregated'], test_size=0.25, random_state=42)
 
         self.X_train_source = self.tfidf.fit_transform(self.X_train['source'])
         self.X_test_source    = self.tfidf.transform(self.X_test['source'])
-        self.X_train_name = self.tfidf.fit_transform(self.X_train['name'])
-        self.X_test_name = self.tfidf.transform(self.X_test['name'])
+        self.X_train_name = self.tfidf1.fit_transform(self.X_train['name'])
+        self.X_test_name = self.tfidf1.transform(self.X_test['name'])
         self.X_train_val = self.X_train.drop(['source', 'name'], axis=1).values
         self.X_test_val    = self.X_test.drop(['source', 'name'], axis=1).values
         self.X_train = sparse.hstack([self.X_train_val, self.X_train_source, self.X_train_name]).tocsr()
@@ -81,9 +84,9 @@ class SocialCredibilityFeature(object):
         #remove punctuation
         df['name'] = df['name'].apply(remove_punctuation)
 
-        df = __generate_ratio(df)
+        df = self.__generate_ratio(df)
 
-        return df[['source', 'name', 'ratio', 'verified', 'aggregated' ]]
+        return df[['source', 'name', 'ratio', 'aggregated' ]]
 
     def __amalgamate_twitter_data(self, df):
         df = df.copy()
@@ -109,11 +112,11 @@ class SocialCredibilityFeature(object):
         return df
 
     def __vectorize(self, df):
-        x_name = self.tfidf.transform(df['name'])
         x_source = self.tfidf.transform(df['source'])
+        x_name = self.tfidf1.transform(df['name'])
         x_val = df.drop(['aggregated','name','source'], axis=1).values
         x = sparse.hstack([x_val, x_source, x_name]).tocsr()
-        y = self.train['aggregated'].values
+        y = df['aggregated'].values
         return x, y
 
     def __train_model(self):
@@ -121,13 +124,12 @@ class SocialCredibilityFeature(object):
         nb.fit(self.X_train, self.y_train)
         return nb
 
-    def predict(self, source, name, followers_count, friends_count, verified, aggregated):
+    def predict(self, source, name, followers_count, friends_count, aggregated):
         model = self.__train_model()
         df = pd.DataFrame(data={"source": [source],
                                 "name": [name],
                                 "followers_count": [followers_count],
                                 "friends_count": [friends_count],
-                                "verified": [verified],
                                 "aggregated": [aggregated]})
         df = self.__text_preprocess(df)
         X, y = self.__vectorize(df)
